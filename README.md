@@ -22,11 +22,13 @@ A minimalist painting application featuring a circular canvas and realistic penc
 ## Screenshots
 
 ### Drawing Demo
-![Drawing Demo](screenshots/drawing-demo.jpg)
+<img src="screenshots/drawing-demo.jpg" alt="Drawing Demo" width="500">
+
 *Circular canvas with pencil texture brush in action*
 
 ### Color Picker
-![Color Picker](screenshots/color-picker.jpg)
+<img src="screenshots/color-picker.jpg" alt="Color Picker" width="400">
+
 *Built-in HSV color picker for precise color selection*
 
 ## Requirements
@@ -39,8 +41,8 @@ A minimalist painting application featuring a circular canvas and realistic penc
 
 1. Clone this repository or download the source code:
 ```bash
-git clone <repository-url>
-cd application1_draw
+git clone https://github.com/yuxuuan-hu/circular-canvas-painter.git
+cd circular-canvas-painter
 ```
 
 2. Install required dependencies:
