@@ -22,7 +22,7 @@ A minimalist painting application featuring a circular canvas and realistic penc
 ## Screenshots
 
 ### Drawing Demo
-<img src="screenshots/drawing-demo.jpg" alt="Drawing Demo" width="500">
+<img src="screenshots/drawing-demo.png" alt="Drawing Demo" width="400">
 
 *Circular canvas with pencil texture brush in action*
 
