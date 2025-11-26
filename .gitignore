@@ -40,3 +40,5 @@ env/
 *.jpeg
 !icon/*.jpg
 !icon/*.png
+!screenshots/*.jpg
+!screenshots/*.png

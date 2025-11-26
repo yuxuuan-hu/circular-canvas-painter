@@ -21,7 +21,13 @@ A minimalist painting application featuring a circular canvas and realistic penc
 
 ## Screenshots
 
-*Coming soon*
+### Drawing Demo
+![Drawing Demo](screenshots/drawing-demo.jpg)
+*Circular canvas with pencil texture brush in action*
+
+### Color Picker
+![Color Picker](screenshots/color-picker.jpg)
+*Built-in HSV color picker for precise color selection*
 
 ## Requirements
 
