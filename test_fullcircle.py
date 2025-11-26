@@ -56,7 +56,7 @@ class PainterApp(tk.Tk):
         g_init = int(self.brush_color[3:5],16)/255.0
         b_init = int(self.brush_color[5:7],16)/255.0
         self._h, self._s, self._v = colorsys.rgb_to_hsv(r_init,g_init,b_init)
-        self.brush_type = tk.StringVar(value="铅笔纹理")
+        self.brush_type = tk.StringVar(value="Pencil Texture")
         
         # Color picker state
         self.color_picker_frame = None
@@ -109,7 +109,7 @@ class PainterApp(tk.Tk):
                 img = Image.open(fp).convert("RGBA")
                 brushes[name] = img
             except Exception as e:
-                print(f"[WARN] 内置笔刷 '{name}' 加载失败：{fp} -> {e}")
+                print(f"[WARN] Failed to load built-in brush '{name}': {fp} -> {e}")
         return brushes
 
     # ========== UI Construction ==========
@@ -221,22 +221,22 @@ class PainterApp(tk.Tk):
     # ========== Overlay Icon Buttons ==========
     def _init_overlay_icons(self):
         """Initialize overlay icons for undo and clear operations"""
-        """在圆形画布上方添加两个图标按钮：撤回 与 清空。
-        图标文件：./icon/withdraw.jpg  ./icon/delete.jpg （相对当前脚本目录）。
-        如果文件缺失则自动使用文字按钮作为回退方案。
+        """Initialize overlay icon buttons for undo and clear operations.
+        Icon files: ./icon/withdraw.jpg and ./icon/delete.jpg
+        Falls back to text buttons if icon files are missing.
         """
         base_dir = os.path.dirname(os.path.abspath(__file__))
         icon_dir = os.path.join(base_dir, 'icon')
         undo_path = os.path.join(icon_dir, 'withdraw.jpg')
         clear_path = os.path.join(icon_dir, 'delete.jpg')
 
-        # 统一图标显示尺寸（相对于直径）
-        icon_size = max(32, int(self.W * 0.07))  # 约占直径7%，不少于32
+        # Icon size: 7% of canvas diameter, minimum 32 pixels
+        icon_size = max(32, int(self.W * 0.07))
 
         def load_icon(fp):
             try:
                 img = Image.open(fp).convert('RGBA')
-                # 等比例缩放到 icon_size
+                # Scale proportionally to icon_size
                 w, h = img.size
                 scale = icon_size / max(w, h)
                 nw, nh = max(1, int(w*scale)), max(1, int(h*scale))
@@ -248,16 +248,16 @@ class PainterApp(tk.Tk):
         self._icon_undo_photo = load_icon(undo_path)
         self._icon_clear_photo = load_icon(clear_path)
 
-        margin = max(14, int(self.W * 0.025))  # 与圆边距离；稍微增大便于贴边
+        # Margin from circle edge: 2.5% of diameter, minimum 14 pixels
+        margin = max(14, int(self.W * 0.025))
 
-        # —— 使用圆弧定位：选择三个角度（更分开 & 贴合圆边） ——
-        # 中间颜色：270°（正下）; 撤回：270° 左偏 ~220°; 清空：270° 右偏 ~320°
+        # Position icons along circle arc: undo (120°), color picker (90°), clear (60°)
         angle_deg_undo  = 120
         angle_deg_color = 90
         angle_deg_clear = 60
         cx = self.W / 2.0
         cy = self.H / 2.0
-        # 有效半径：留 margin 和半个图标尺寸，避免出界
+        # Effective radius: subtract margin and half icon size to keep within bounds
         effective_r = (self.W / 2.0) - margin - icon_size/2.0
 
         def polar(angle_deg):
@@ -270,21 +270,21 @@ class PainterApp(tk.Tk):
         color_x, color_y = polar(angle_deg_color)
         clear_x, clear_y = polar(angle_deg_clear)
 
-        # 中央当前颜色指示圆（沿圆弧）
+        # Current color indicator circle along arc
         self._canvas_color_item = self.canvas.create_oval(
             color_x - icon_size//2, color_y - icon_size//2,
             color_x + icon_size//2, color_y + icon_size//2,
             fill=self.brush_color, outline='#ddd', width=2
         )
-        # 单击打开颜色选择器
+        # Click to open color picker
         self.canvas.tag_bind(self._canvas_color_item, '<Button-1>', lambda e: self.open_color_picker())
         self.canvas.tag_bind(self._canvas_color_item, '<Enter>', lambda e: self._hover_cursor(True))
         self.canvas.tag_bind(self._canvas_color_item, '<Leave>', lambda e: self._hover_cursor(False))
 
-        # 如果加载成功，用图像；否则使用文字+背景
+        # Use icon image if loaded successfully, otherwise fall back to text button
         if self._icon_undo_photo:
             self._canvas_undo_item = self.canvas.create_image(undo_x, undo_y, image=self._icon_undo_photo, anchor='center')
-            # 改为双击触发撤回
+            # Single click triggers undo
             self.canvas.tag_bind(self._canvas_undo_item, '<Button-1>', lambda e: self.undo())
         else:
             self._canvas_undo_item = self.canvas.create_oval(undo_x-icon_size//2, undo_y-icon_size//2,
@@ -293,12 +293,12 @@ class PainterApp(tk.Tk):
             txt = self.canvas.create_text(undo_x, undo_y, text='Undo', fill='white', font=('Arial', 10, 'bold'))
             self.canvas.tag_bind(self._canvas_undo_item, '<Button-1>', lambda e: self.undo())
             self.canvas.tag_bind(txt, '<Button-1>', lambda e: self.undo())
-            # 记录文字元素以便点击判定
+            # Store text element for click detection
             self._canvas_undo_text = txt
 
         if self._icon_clear_photo:
             self._canvas_clear_item = self.canvas.create_image(clear_x, clear_y, image=self._icon_clear_photo, anchor='center')
-            # 改为双击触发清空
+            # Single click triggers clear
             self.canvas.tag_bind(self._canvas_clear_item, '<Button-1>', lambda e: self.clear())
         else:
             self._canvas_clear_item = self.canvas.create_oval(clear_x-icon_size//2, clear_y-icon_size//2,
@@ -309,13 +309,13 @@ class PainterApp(tk.Tk):
             self.canvas.tag_bind(txt2, '<Button-1>', lambda e: self.clear())
             self._canvas_clear_text = txt2
 
-        # 添加悬停提示（仅在图标存在或文字按钮上）
+        # Add hover cursor feedback for buttons
         self.canvas.tag_bind(self._canvas_undo_item, '<Enter>', lambda e: self._hover_cursor(True))
         self.canvas.tag_bind(self._canvas_undo_item, '<Leave>', lambda e: self._hover_cursor(False))
         self.canvas.tag_bind(self._canvas_clear_item, '<Enter>', lambda e: self._hover_cursor(True))
         self.canvas.tag_bind(self._canvas_clear_item, '<Leave>', lambda e: self._hover_cursor(False))
 
-        # 收集所有覆盖按钮相关 item，供按下时过滤绘制
+        # Collect all overlay button items to filter out during drawing
         items = [self._canvas_undo_item, self._canvas_clear_item, self._canvas_color_item]
         if hasattr(self, '_canvas_undo_text'): items.append(self._canvas_undo_text)
         if hasattr(self, '_canvas_clear_text'): items.append(self._canvas_clear_text)
@@ -327,17 +327,17 @@ class PainterApp(tk.Tk):
         except Exception:
             pass
 
-    # ========= 快捷键 =========
+    # Keyboard shortcuts
     def bind_hotkeys(self):
         self.bind("<Control-z>", lambda e: self.undo())
         self.bind("<Control-s>", lambda e: self.save())
 
-    # ===== 圆形区域判定 =====
+    # Check if point is inside circular canvas
     def _inside_circle(self, x, y):
         cx = self.W/2.0; cy = self.H/2.0; r = self.W/2.0
         return (x-cx)**2 + (y-cy)**2 <= r*r
 
-    # ========= 文件/颜色 =========
+    # File and color operations
     def load_custom_brush(self):
         fp = filedialog.askopenfilename(
             title="Select Brush Image",
@@ -349,21 +349,21 @@ class PainterApp(tk.Tk):
             messagebox.showerror("Load Brush", f"Failed to load image:\n{e}"); return
         self.custom_brush_img = img
         self._custom_cache.clear()
-        self.brush_type.set("自定义笔刷（图片）")
+        self.brush_type.set("Custom Brush (Image)")
         messagebox.showinfo("Brush Loaded", os.path.basename(fp))
 
-    # ===== 自定义颜色选择器 =====
+    # Custom color picker
     def open_color_picker(self):
         if self._color_picker_open:
             return
         self._color_picker_open = True
-        # 隐藏绘图区域
+        # Hide drawing area
         self.draw_frame.pack_forget()
-        # 创建取色器容器
+        # Create color picker container
         self.color_picker_frame = tk.Frame(self, bg="white")
         self.color_picker_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
-        # === 清理旧的画布元素引用（防止第二次打开复用失效的 item id） ===
+        # Clear old canvas item references to prevent reuse of invalid item IDs
         for _old in ['_wheel_marker','_picker_color_item','_sv_marker','_sv_inner','_sv_cross_h','_sv_cross_v','_sv_img_item']:
             if hasattr(self, _old):
                 try: delattr(self, _old)
@@ -390,7 +390,7 @@ class PainterApp(tk.Tk):
                                  highlightthickness=0, bg="white")
         wheel_canvas.pack(padx=4, pady=4)
         wheel_canvas.create_image(0,0, anchor='nw', image=self._wheel_photo)
-        # 保存引用用于后续更新颜色指示圆
+        # Save reference for later color indicator updates
         self._wheel_canvas = wheel_canvas
         self._wheel_canvas_ref = wheel_canvas
 
@@ -400,31 +400,28 @@ class PainterApp(tk.Tk):
                                     highlightthickness=1, highlightbackground="#888", bd=0, bg="white")
         self._sv_canvas.place(relx=0.5, rely=0.5, anchor='center')
 
-        # --- 关键修复点 ---
-        # 第二次打开时旧的 _sv_img_item / _sv_marker 等仍指向第一次的 Canvas 项目 ID，
-        # 这些 ID 在新建的 Canvas 上无效，导致 _draw_sv_square 走 "itemconfig" 分支却没有真正创建图像。
-        # 这里主动清理相关属性，强制重新创建。
+        # Clear old canvas item IDs to force recreation on reopen
         for _old in ['_sv_img_item', '_sv_marker', '_sv_inner', '_sv_cross_h', '_sv_cross_v']:
             if hasattr(self, _old):
                 try: delattr(self, _old)
                 except Exception: pass
-        # 记录当前 SV Canvas 引用，用于后续判断是否需要重建图像
+        # Store current SV canvas reference
         self._sv_canvas_ref = self._sv_canvas
 
         h, s, v = self._h, self._s, self._v
         self._draw_sv_square(h)
         self._update_sv_marker(s, v)
-        # 首次创建 Hue 指针（三角形），不再使用占位椭圆，避免后续 coords 出错
+        # Create hue marker (triangle shape)
         self._update_wheel_marker(wheel_canvas, h, outer/2, inner_r)
         wheel_canvas.bind('<Button-1>', lambda e: self._wheel_click(e, wheel_canvas, outer/2, inner_r))
         wheel_canvas.bind('<B1-Motion>', lambda e: self._wheel_click(e, wheel_canvas, outer/2, inner_r))
-        # 额外全局拖动绑定（防止某些平台 Canvas 不连续触发 B1-Motion）
+        # Global drag binding for continuous hue selection across platforms
         def _global_hue_drag(ev):
             if not self._color_picker_open: return
-            # 将全局坐标转换到 wheel_canvas 局部
+            # Convert global coordinates to wheel_canvas local coordinates
             x = ev.x_root - wheel_canvas.winfo_rootx()
             y = ev.y_root - wheel_canvas.winfo_rooty()
-            # 构造一个简单事件对象
+            # Create simple event object
             class _E: pass
             e = _E(); e.x = x; e.y = y
             self._wheel_click(e, wheel_canvas, outer/2, inner_r)
@@ -432,15 +429,15 @@ class PainterApp(tk.Tk):
         self._sv_canvas.bind('<Button-1>', self._sv_click)
         self._sv_canvas.bind('<B1-Motion>', self._sv_click)
 
-        # ===== 恢复：左侧当前色预览 + 右侧确认按钮 =====
-        self._pending_color = self.brush_color  # 暂存待确认颜色
+        # Color preview (left) and confirm button (right)
+        self._pending_color = self.brush_color  # Pending color before confirmation
         center = outer/2
         square_left  = center - square_size/2
         square_right = center + square_size/2
         gap_w = outer - square_size
         icon_side = max(32, min(int(ring_thickness*0.85), int(gap_w*0.4)))
         margin_icon = max(6, int(icon_side*0.15))
-        # 左侧预览圆
+        # Left side: color preview circle
         preview_color = self.brush_color
         color_x = square_left - icon_side/2 - margin_icon
         color_y = center
@@ -451,7 +448,7 @@ class PainterApp(tk.Tk):
         )
         wheel_canvas.tag_bind(self._picker_color_item, '<Enter>', lambda e: wheel_canvas.config(cursor='hand2'))
         wheel_canvas.tag_bind(self._picker_color_item, '<Leave>', lambda e: wheel_canvas.config(cursor=''))
-        # 右侧确认按钮：优先加载图片；失败则绘制简易“✔”
+        # Right side: confirm button (icon or checkmark fallback)
         try:
             confirm_fp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon', 'confirm.jpg')
             img = Image.open(confirm_fp).convert('RGBA').resize((icon_side, icon_side), Image.LANCZOS)
@@ -465,14 +462,14 @@ class PainterApp(tk.Tk):
             self._confirm_item = wheel_canvas.create_oval(icon_x-icon_side/2, icon_y-icon_side/2,
                                                           icon_x+icon_side/2, icon_y+icon_side/2,
                                                           fill='#222', outline='white', width=2)
-            # 画简单对勾
+            # Draw checkmark symbol
             s = icon_side/2.8
             wheel_canvas.create_line(icon_x-s*0.6, icon_y, icon_x-s*0.15, icon_y+s*0.55,
                                      icon_x+s*0.7, icon_y-s*0.6, fill='white', width=2, capstyle='round', joinstyle='round')
         wheel_canvas.tag_bind(self._confirm_item, '<Button-1>', lambda e: self._apply_color_and_close())
         wheel_canvas.tag_bind(self._confirm_item, '<Enter>', lambda e: wheel_canvas.config(cursor='hand2'))
         wheel_canvas.tag_bind(self._confirm_item, '<Leave>', lambda e: wheel_canvas.config(cursor=''))
-        # ESC 取消（不应用）
+        # ESC to cancel without applying
         self.bind('<Escape>', lambda e: self._close_color_picker())
 
     def _close_color_picker(self):
@@ -482,7 +479,7 @@ class PainterApp(tk.Tk):
         if not self.draw_frame.winfo_ismapped():
             self.draw_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self._color_picker_open = False
-        # 解除全局拖动绑定
+        # Unbind global drag handler
         try:
             if hasattr(self, '_hue_global_bind_id') and self._hue_global_bind_id:
                 self.unbind('<B1-Motion>', self._hue_global_bind_id)
@@ -491,13 +488,13 @@ class PainterApp(tk.Tk):
             pass
 
     def _apply_color_and_close(self):
-        # 应用待确认颜色
+        # Apply pending color selection
         final_color = getattr(self, '_pending_color', self.brush_color)
         self.brush_color = final_color
         if hasattr(self, 'color_preview'):
             try: self.color_preview.config(background=final_color)
             except Exception: pass
-        # 更新底部中央颜色指示圆
+        # Update bottom center color indicator
         try:
             if hasattr(self, '_canvas_color_item'):
                 self.canvas.itemconfig(self._canvas_color_item, fill=final_color)
@@ -505,26 +502,26 @@ class PainterApp(tk.Tk):
         self._close_color_picker()
 
     def _wheel_click(self, event, canvas, R, inner_r):
-        # 计算点击到的角决定 hue
+        # Calculate hue from click angle on color wheel
         cx = R; cy = R
         dx = event.x - cx; dy = event.y - cy
         r = math.hypot(dx, dy)
-        if r < inner_r or r > R:  # 不在环上
+        if r < inner_r or r > R:  # Not on ring area
             return
         ang = (math.degrees(math.atan2(dy, dx)) + 360) % 360
         self._h = ang/360.0
-        # 节流刷新 SV 方块
+        # Throttled SV square refresh
         self._maybe_update_sv_square(self._h)
         self._update_wheel_marker(canvas, self._h, R, inner_r)
-        # 不改变 s,v 只更新预览临时色
+        # Update preview color without changing S,V
         r1,g1,b1 = colorsys.hsv_to_rgb(self._h, self._s, self._v)
         preview = f"#{int(r1*255):02x}{int(g1*255):02x}{int(b1*255):02x}"
-        # 仅更新“待确认”颜色与预览，不立即应用到主画笔
+        # Update pending color and preview only, don't apply to main brush yet
         self._pending_color = preview
         if hasattr(self, 'color_preview'):
             try: self.color_preview.config(background=preview)
             except Exception: pass
-        # 左侧预览圆
+        # Update left preview circle
         try:
             if hasattr(self, '_picker_color_item'):
                 canvas.itemconfig(self._picker_color_item, fill=preview)
@@ -540,7 +537,7 @@ class PainterApp(tk.Tk):
                 r,g,b = colorsys.hsv_to_rgb(h, s, v)
                 img.putpixel((x,y),(int(r*255), int(g*255), int(b*255)))
         self._sv_photo = ImageTk.PhotoImage(img)
-        # 如果之前的 _sv_img_item 属于旧 Canvas，则必须重新创建
+        # Recreate image if previous item belongs to old canvas
         reuse = False
         if getattr(self, '_sv_img_item', None) is not None and getattr(self, '_sv_canvas_ref', None) is self._sv_canvas:
             try:
@@ -573,7 +570,7 @@ class PainterApp(tk.Tk):
         self._update_sv_marker(self._s, self._v)
         r,g,b = colorsys.hsv_to_rgb(self._h, self._s, self._v)
         hex_color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
-        # 仅更新待确认颜色与预览
+        # Update pending color and preview only
         self._pending_color = hex_color
         if hasattr(self, 'color_preview'):
             try: self.color_preview.config(background=hex_color)
@@ -584,15 +581,15 @@ class PainterApp(tk.Tk):
         except Exception: pass
 
     def _update_wheel_marker(self, canvas, h, R, inner_r):
-        # Hue 三角指针：指向当前 hue 的环中间半径位置
+        # Hue triangle marker pointing to current hue on color wheel
         ang = h * 2 * math.pi
         mid_r = (R + inner_r) / 1.9
         tip_x = R + math.cos(ang) * mid_r
         tip_y = R + math.sin(ang) * mid_r
-        # 三角基底朝向圆心稍外侧：沿法线（垂直于指向角）偏移
+        # Triangle base facing slightly outward from center
         normal_ang = ang + math.pi/2
-        base_offset = 15  # 三角底边半宽
-        back_offset = 25  # 三角向内（圆心方向）回退距离
+        base_offset = 15  # Half-width of triangle base
+        back_offset = 25  # Distance to pull back toward center
         base_center_x = tip_x - math.cos(ang) * back_offset
         base_center_y = tip_y - math.sin(ang) * back_offset
         p1_x = base_center_x + math.cos(normal_ang) * base_offset
@@ -600,11 +597,10 @@ class PainterApp(tk.Tk):
         p2_x = base_center_x - math.cos(normal_ang) * base_offset
         p2_y = base_center_y - math.sin(normal_ang) * base_offset
         points = [tip_x, tip_y, p1_x, p1_y, p2_x, p2_y]
-        # 删除旧指针
-        # 计算对比描边色（基于最终当前色）
+        # Calculate marker color
         r_c,g_c,b_c = colorsys.hsv_to_rgb(h, self._s, self._v)
         lum = (0.299*r_c + 0.587*g_c + 0.114*b_c)
-        # 指针描边改为始终白色以增强可见性
+        # Use white outline for better visibility
         outline = 'white'
         fill_hex = f"#{int(r_c*255):02x}{int(g_c*255):02x}{int(b_c*255):02x}"
         need_new = True
@@ -620,8 +616,8 @@ class PainterApp(tk.Tk):
                 self._wheel_marker = canvas.create_polygon(points, fill=fill_hex, outline=outline, width=2, smooth=True)
                 self._wheel_canvas_ref = canvas
             except Exception:
-                return  # 创建失败直接返回
-        # 保持在最上层
+                return  # Failed to create marker
+        # Keep marker on top layer
         try:
             canvas.tag_raise(self._wheel_marker)
         except Exception:
@@ -631,9 +627,7 @@ class PainterApp(tk.Tk):
         size = self._sv_size
         x = s*(size-1)
         y = (1-v)*(size-1)
-        # 删除旧 marker
-        # 仅在首次创建，后续直接移动与更新属性
-        # 颜色与指示点（指示点始终使用白色描边）
+        # Create on first use, then update position and color
         r_c,g_c,b_c = colorsys.hsv_to_rgb(self._h, s, v)
         fill_hex = f"#{int(r_c*255):02x}{int(g_c*255):02x}{int(b_c*255):02x}"
         if not hasattr(self, '_sv_marker'):
@@ -681,7 +675,7 @@ class PainterApp(tk.Tk):
         prev = self.points[-1]
         self.points.append((x, y, t))
 
-        if self.brush_type.get() == "自定义笔刷（图片）":
+        if self.brush_type.get() == "Custom Brush (Image)":
             step = max(1, int(self.brush_size.get() * (self.spacing_pct.get()/100.0)))
         else:
             step = max(1, int(self.brush_size.get() * self.smoothing.get()))
@@ -742,7 +736,7 @@ class PainterApp(tk.Tk):
         brush = self.brush_type.get()
 
         # Pencil texture (default brush)
-        if brush == "铅笔纹理":
+        if brush == "Pencil Texture":
             m_soft = make_circle_mask(size, blur=max(1, size//10))
             noise = ImageOps.autocontrast(Image.effect_noise(m_soft.size, 48.0))
             noise_bright = ImageEnhance.Brightness(noise).enhance(1.3)
@@ -751,7 +745,7 @@ class PainterApp(tk.Tk):
             stamp = Image.new("RGBA", m_soft.size, color_rgba(self.brush_color, 255)); stamp.putalpha(final_alpha)
 
         # Custom brush from image (reserved for extension)
-        elif brush == "自定义笔刷（图片）" and self.custom_brush_img is not None:
+        elif brush == "Custom Brush (Image)" and self.custom_brush_img is not None:
             stamp = self._make_stamp_from_image(self.custom_brush_img, size, alpha, key_prefix="__custom__")
 
         # Fallback: simple circular brush
